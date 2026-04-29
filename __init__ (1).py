@@ -4,6 +4,14 @@ Claude AI + PubMed + Save to Card + Regenerate + Chat
 """
 
 def _load():
+    try:
+        _load_inner()
+    except Exception as e:
+        import traceback
+        from aqt.utils import showWarning
+        showWarning(f"Oral Agent failed to load:\n\n{traceback.format_exc()}")
+
+def _load_inner():
     from aqt import mw, gui_hooks
     from aqt.qt import (QAction, QKeySequence, QDialog, QVBoxLayout, QHBoxLayout,
                         QPushButton, QLabel, QSizePolicy, QThread, pyqtSignal,
@@ -238,7 +246,7 @@ body{{background:#0b0e16;display:flex;align-items:center;justify-content:center;
 
         # ── Build dialog ──────────────────────────────────────────────────────
         dlg = QDialog(mw)
-        dlg.setWindowTitle("⚕ Oral Exam Answer")
+        dlg.setWindowTitle("⚕ AI Exam Answer")
         dlg.resize(720, 860)
         dlg.setStyleSheet("background:#0b0e16;")
 
@@ -468,7 +476,7 @@ body{{background:#0b0e16;display:flex;align-items:center;justify-content:center;
 
     # ── Menu ──────────────────────────────────────────────────────────────────
     def setup_menu():
-        action = QAction("⚕  Oral Exam Answer", mw)
+        action = QAction("⚕  AI Exam Answer", mw)
         action.setShortcut(QKeySequence("Ctrl+Shift+O"))
         action.triggered.connect(launch_oral_agent)
         mw.form.menuTools.addAction(action)
@@ -479,7 +487,7 @@ body{{background:#0b0e16;display:flex;align-items:center;justify-content:center;
         if(document.getElementById('oral-agent-btn'))return;
         var b=document.createElement('button');
         b.id='oral-agent-btn';
-        b.innerHTML='⚕ Oral Answer';
+        b.innerHTML='⚕ AI Answer';
         b.style.cssText='position:fixed;bottom:90px;right:24px;z-index:99999;'
             +'background:#0d1829;color:#5b9cf6;border:1px solid #1e3560;'
             +'border-radius:9px;padding:9px 20px;font-family:monospace;'
