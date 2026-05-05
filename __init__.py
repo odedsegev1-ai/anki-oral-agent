@@ -37,15 +37,25 @@ def _load_inner():
                  ".gif":"image/gif",".webp":"image/webp"}
 
     SYSTEM = """You are a medical education expert helping a student prepare for oral exams.
-Read the question carefully, analyse all provided content, then choose the most logical structure:
-- Mechanism/pathway → sequential flow
-- Comparison → parallel side-by-side
+
+Structure EVERY answer in exactly TWO parts:
+
+## PART 1 — QUICK SUMMARY (3-5 lines max)
+A concise abstract-style summary of the answer. Like the abstract of a paper — the student should be able to read this in 10 seconds and know the core answer. No bullet points, just 2-3 flowing sentences.
+
+## PART 2 — FULL ANSWER
+The complete structured answer. Choose the structure based on question type:
+- Mechanism/pathway → sequential numbered flow
+- Comparison → parallel side-by-side with headers
 - Clinical → Presentation → Diagnosis → Treatment → Complications
 - Concept → Define → Explain → Clinical relevance
 - Drug → MOA → Indications → Side effects → Contraindications
+
 Use bold **headers**. Keep points concise but complete — suitable for speaking aloud.
-Always end with **Key Points to Remember** (2-4 bullets).
-Output clean Markdown. Do NOT say "Based on the card…" — answer directly as if speaking to an examiner."""
+Always end Part 2 with **Key Points to Remember** (2-4 bullets).
+
+Output clean Markdown. Do NOT say "Based on the card…" — answer directly as if speaking to an examiner.
+Separate the two parts with a horizontal rule (---) ."""
 
     # ── Helpers ───────────────────────────────────────────────────────────────
     def strip_html(html):
@@ -77,6 +87,18 @@ Output clean Markdown. Do NOT say "Based on the card…" — answer directly as 
         return '\n'.join(out)
 
     def make_page(answer_md, chat_html=""):
+        # Split into summary and full answer at the --- divider
+        parts = answer_md.split('\n---\n', 1)
+        if len(parts) == 2:
+            summary_html = f'''<div class="summary-box">
+                <div class="summary-label">⚡ Quick Summary</div>
+                <p>{md2html(parts[0]).replace("<p>","").replace("</p>","")}</p>
+            </div>'''
+            body_html = md2html(parts[1])
+        else:
+            summary_html = ""
+            body_html = md2html(answer_md)
+        full_html = summary_html + body_html
         return f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
 body{{background:#0b0e16;color:#dde2f2;font-family:Georgia,serif;font-size:15px;
      line-height:1.75;padding:20px 28px 40px;margin:0}}
@@ -89,13 +111,18 @@ strong{{color:#b8c2e8}}
 ul{{list-style:none;padding:0;margin:6px 0}}
 li{{padding:2px 0 2px 18px;position:relative}}
 li::before{{content:'▸';position:absolute;left:0;color:#5b9cf6;font-size:10px;top:6px}}
-.chat-section{{margin-top:28px;border-top:1px solid #252a40;padding-top:16px}}
+hr{{border:none;border-top:2px solid #252a40;margin:20px 0}}
+.summary-box{{background:#0d1829;border:1px solid #1e3560;border-left:3px solid #5b9cf6;
+              border-radius:0 8px 8px 0;padding:14px 18px;margin:0 0 20px 0}}
+.summary-box p{{margin:0;font-size:15px;line-height:1.7;color:#c8d8f0;font-style:italic}}
+.summary-label{{font-family:monospace;font-size:9px;text-transform:uppercase;
+                letter-spacing:2px;color:#5b9cf6;margin-bottom:8px}}
 .chat-bubble-user{{background:#1a2235;border-radius:8px;padding:10px 14px;
                    margin:8px 0;font-size:13px;color:#8bb4e8;font-family:monospace}}
 .chat-bubble-ai{{background:#0d1f18;border-left:3px solid #34d399;border-radius:0 8px 8px 0;
                  padding:10px 14px;margin:8px 0;font-size:14px}}
 </style></head><body>
-{md2html(answer_md)}
+{full_html}
 {chat_html}
 </body></html>"""
 
@@ -245,10 +272,18 @@ body{{background:#0b0e16;display:flex;align-items:center;justify-content:center;
         }
 
         # ── Build dialog ──────────────────────────────────────────────────────
+        from aqt.qt import Qt as _Qt
         dlg = QDialog(mw)
         dlg.setWindowTitle("⚕ AI Exam Answer")
         dlg.resize(720, 860)
         dlg.setStyleSheet("background:#0b0e16;")
+        # Keep window attached to Anki, not system-floating
+        dlg.setWindowFlags(
+            _Qt.WindowType.Dialog |
+            _Qt.WindowType.WindowCloseButtonHint |
+            _Qt.WindowType.WindowMinimizeButtonHint |
+            _Qt.WindowType.WindowMaximizeButtonHint
+        )
 
         root = QVBoxLayout(dlg)
         root.setContentsMargins(0,0,0,0)
@@ -440,7 +475,7 @@ body{{background:#0b0e16;display:flex;align-items:center;justify-content:center;
             url = "https://raw.githubusercontent.com/odedsegev1-ai/anki-oral-agent/main/version.json"
             with urllib.request.urlopen(url, timeout=5) as r:
                 remote = json.loads(r.read()).get("version","0.0.0")
-            current = "3.0.0"
+            current = "3.2.0"
             if tuple(int(x) for x in remote.split(".")) > tuple(int(x) for x in current.split(".")):
                 from aqt.utils import askUser
                 if askUser(f"⚕ Oral Exam Agent: New version {remote} available!\n\nInstall update now? (Anki will need to restart)"):
