@@ -40,8 +40,8 @@ def _load_inner():
 
 Structure EVERY answer in exactly TWO parts:
 
-## PART 1 — QUICK SUMMARY (3-5 lines max)
-A concise abstract-style summary of the answer. Like the abstract of a paper — the student should be able to read this in 10 seconds and know the core answer. No bullet points, just 2-3 flowing sentences.
+## PART 1 — QUICK SUMMARY
+4-6 bullet points covering the most important concepts. Each bullet should be one clear, informative sentence. Think of it as the key points a student must know before going into detail. Use • for bullets.
 
 ## PART 2 — FULL ANSWER
 The complete structured answer. Choose the structure based on question type:
@@ -279,7 +279,7 @@ body{{background:#0b0e16;display:flex;align-items:center;justify-content:center;
         dlg.setStyleSheet("background:#0b0e16;")
         # Keep window attached to Anki, not system-floating
         dlg.setWindowFlags(
-            _Qt.WindowType.Dialog |
+            _Qt.WindowType.Tool |
             _Qt.WindowType.WindowCloseButtonHint |
             _Qt.WindowType.WindowMinimizeButtonHint |
             _Qt.WindowType.WindowMaximizeButtonHint
@@ -475,7 +475,7 @@ body{{background:#0b0e16;display:flex;align-items:center;justify-content:center;
             url = "https://raw.githubusercontent.com/odedsegev1-ai/anki-oral-agent/main/version.json"
             with urllib.request.urlopen(url, timeout=5) as r:
                 remote = json.loads(r.read()).get("version","0.0.0")
-            current = "3.0.0"
+            current = "3.1.0"
             if tuple(int(x) for x in remote.split(".")) > tuple(int(x) for x in current.split(".")):
                 from aqt.utils import askUser
                 if askUser(f"⚕ Oral Exam Agent: New version {remote} available!\n\nInstall update now? (Anki will need to restart)"):
