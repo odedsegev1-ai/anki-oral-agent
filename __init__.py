@@ -100,27 +100,27 @@ Separate the two parts with a horizontal rule (---) ."""
             body_html = md2html(answer_md)
         full_html = summary_html + body_html
         return f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-body{{background:#0b0e16;color:#dde2f2;font-family:Georgia,serif;font-size:15px;
-     line-height:1.75;padding:20px 28px 40px;margin:0}}
-h1{{color:#5b9cf6;font-size:20px;border-bottom:1px solid #252a40;padding-bottom:7px;margin:22px 0 10px}}
-h2{{color:#b8c2e8;font-size:17px;border-bottom:1px solid #1e2235;padding-bottom:5px;margin:18px 0 8px}}
-h3{{color:#8b7cf8;font-family:monospace;font-size:10px;text-transform:uppercase;
-    letter-spacing:1px;margin:16px 0 5px}}
-p{{margin:5px 0 9px}}
+body{{background:#0b0e16;color:#dde2f2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px;
+     line-height:1.6;padding:16px 20px 32px;margin:0}}
+h1{{color:#5b9cf6;font-size:15px;border-bottom:1px solid #252a40;padding-bottom:5px;margin:18px 0 8px}}
+h2{{color:#b8c2e8;font-size:14px;border-bottom:1px solid #1e2235;padding-bottom:4px;margin:14px 0 6px}}
+h3{{color:#8b7cf8;font-size:11px;text-transform:uppercase;
+    letter-spacing:0.5px;margin:12px 0 4px}}
+p{{margin:4px 0 7px}}
 strong{{color:#b8c2e8}}
-ul{{list-style:none;padding:0;margin:6px 0}}
-li{{padding:2px 0 2px 18px;position:relative}}
-li::before{{content:'▸';position:absolute;left:0;color:#5b9cf6;font-size:10px;top:6px}}
-hr{{border:none;border-top:2px solid #252a40;margin:20px 0}}
+ul{{list-style:none;padding:0;margin:4px 0}}
+li{{padding:2px 0 2px 14px;position:relative;font-size:13px}}
+li::before{{content:'▸';position:absolute;left:0;color:#5b9cf6;font-size:10px;top:4px}}
+hr{{border:none;border-top:1px solid #252a40;margin:14px 0}}
 .summary-box{{background:#0d1829;border:1px solid #1e3560;border-left:3px solid #5b9cf6;
-              border-radius:0 8px 8px 0;padding:14px 18px;margin:0 0 20px 0}}
-.summary-box p{{margin:0;font-size:15px;line-height:1.7;color:#c8d8f0;font-style:italic}}
+              border-radius:0 6px 6px 0;padding:10px 14px;margin:0 0 14px 0}}
+.summary-box p{{margin:0;font-size:13px;line-height:1.6;color:#c8d8f0}}
 .summary-label{{font-family:monospace;font-size:9px;text-transform:uppercase;
-                letter-spacing:2px;color:#5b9cf6;margin-bottom:8px}}
-.chat-bubble-user{{background:#1a2235;border-radius:8px;padding:10px 14px;
-                   margin:8px 0;font-size:13px;color:#8bb4e8;font-family:monospace}}
-.chat-bubble-ai{{background:#0d1f18;border-left:3px solid #34d399;border-radius:0 8px 8px 0;
-                 padding:10px 14px;margin:8px 0;font-size:14px}}
+                letter-spacing:1.5px;color:#5b9cf6;margin-bottom:6px}}
+.chat-bubble-user{{background:#1a2235;border-radius:6px;padding:8px 12px;
+                   margin:6px 0;font-size:12px;color:#8bb4e8;font-family:monospace}}
+.chat-bubble-ai{{background:#0d1f18;border-left:3px solid #34d399;border-radius:0 6px 6px 0;
+                 padding:8px 12px;margin:6px 0;font-size:13px}}
 </style></head><body>
 {full_html}
 {chat_html}
@@ -471,43 +471,52 @@ body{{background:#0b0e16;display:flex;align-items:center;justify-content:center;
 
     # ── Auto-update check ─────────────────────────────────────────────────────
     def check_for_update():
+        import urllib.request as _ur, json as _json
+        from aqt.utils import showInfo, showWarning, askUser
         try:
             url = "https://raw.githubusercontent.com/odedsegev1-ai/anki-oral-agent/main/version.json"
-            with urllib.request.urlopen(url, timeout=5) as r:
-                remote = json.loads(r.read()).get("version","0.0.0")
-            current = "3.1.0"
-            if tuple(int(x) for x in remote.split(".")) > tuple(int(x) for x in current.split(".")):
-                from aqt.utils import askUser
-                if askUser(f"⚕ Oral Exam Agent: New version {remote} available!\n\nInstall update now? (Anki will need to restart)"):
+            req = _ur.Request(url, headers={"Cache-Control": "no-cache", "User-Agent": "AnkiOralAgent/3.0"})
+            with _ur.urlopen(req, timeout=10) as r:
+                raw = r.read().decode("utf-8").strip()
+            remote = _json.loads(raw).get("version", "0.0.0")
+            current = "3.0.0"
+            r_tuple = tuple(int(x) for x in remote.split("."))
+            c_tuple = tuple(int(x) for x in current.split("."))
+            if r_tuple > c_tuple:
+                if askUser(f"⚕ New version {remote} available! (you have {current})\n\nInstall now? Anki will need to restart."):
                     install_update()
-        except:
-            pass  # Silent fail — no internet or GitHub down
+            else:
+                showInfo(f"✓ You have the latest version ({current}).\nGitHub: {remote}")
+        except Exception as _ue:
+            showWarning(f"Update check failed:\n{str(_ue)}")
 
     def install_update():
+        import shutil, zipfile
+        from aqt.utils import showInfo, showWarning
         try:
-            import shutil, zipfile
             addon_dir = _os.path.dirname(__file__)
             zip_url = "https://github.com/odedsegev1-ai/anki-oral-agent/archive/refs/heads/main.zip"
             zip_path = _os.path.join(addon_dir, "_update.zip")
             tmp_dir  = _os.path.join(addon_dir, "_update_tmp")
             with urllib.request.urlopen(zip_url, timeout=30) as r:
                 with open(zip_path, "wb") as f: f.write(r.read())
-            os.makedirs(tmp_dir, exist_ok=True)
+            _os.makedirs(tmp_dir, exist_ok=True)
             with zipfile.ZipFile(zip_path, "r") as z: z.extractall(tmp_dir)
             src = _os.path.join(tmp_dir, "anki-oral-agent-main", "__init__.py")
             dst = _os.path.join(addon_dir, "__init__.py")
             if _os.path.exists(src):
                 shutil.copy2(src, dst)
+                showInfo("✓ Updated! Please restart Anki.")
+            else:
+                showWarning(f"Update file not found at: {src}")
             for p in [zip_path, tmp_dir]:
                 try:
                     if _os.path.isfile(p): _os.remove(p)
                     elif _os.path.isdir(p): shutil.rmtree(p)
                 except: pass
-            from aqt.utils import showInfo
-            showInfo("✓ Oral Exam Agent updated!\nPlease restart Anki.")
         except Exception as e:
-            from aqt.utils import showWarning
             showWarning(f"Update failed: {e}")
+
 
     # ── Menu ──────────────────────────────────────────────────────────────────
     def setup_menu():
@@ -515,6 +524,10 @@ body{{background:#0b0e16;display:flex;align-items:center;justify-content:center;
         action.setShortcut(QKeySequence("Ctrl+Shift+O"))
         action.triggered.connect(launch_oral_agent)
         mw.form.menuTools.addAction(action)
+
+        update_action = QAction("⚕  Check for Updates", mw)
+        update_action.triggered.connect(check_for_update)
+        mw.form.menuTools.addAction(update_action)
 
     # ── Floating button via JS ─────────────────────────────────────────────────
     INJECT_JS = """
